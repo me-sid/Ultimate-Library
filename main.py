@@ -1,82 +1,88 @@
-import mysql.connector
-import datetime
-host="localhost"
-username="root"
-password="siddhurocks"
-database="testbase"
+from funcs import UltimateLib
+a = UltimateLib("localhost", "your_username", "your_password", "your_database")
+print("Welcome to ultimate library!")
+str1="""
+----------------
+1) Issue Book
+2) Return Book
+3) Check book availability
+4) Person History
+5) Book guide
+6) Add book to lib
+q) quit
+----------------
+enter your choice ->"""
+book_guide_str = """
+----------------
+1) All available book list
+2) Book History
+3) Search book by book rating
+4) Search book by genre
+5) About book
+6) Change book quantity
+b) Back
+----------------
+enter your choice ->"""
+choice = ""
+while choice != "q":
+    choice = input(str1)
+    if choice=="1":
+        book_name = input("Enter book name: ")
+        person = input("Enter borrower's name: ")
+        a.issue_book(book_name, person)
+    elif choice == '2':
+        a.return_book()
+    elif choice == '3':
+        bookname = input("Enter book name: ")
+        print(a.b_availability(bookname))
+    elif choice == '4':
+        person = input("Enter name: ")
+        print(a.person_history(person))
+    
+    # Book guide 
+    elif choice == '5':
+        choice2=""
+        while choice2 != 'b':
+            choice2 = input(book_guide_str)
+            if choice2 == '1':
+                for i in a.available_books():
+                    print(i[1])
+            elif choice2 == '2':
+                bookname = input("Enter book name: ")
+                print(a.book_history(bookname))
+            elif choice2 == '3':
+                start_r = int(input("Enter start range: "))
+                end_r = int(input("Enter end range: "))
+                print(a.search_by_rating(start_r, end_r))
+            elif choice2 == '4':
+                gen = input("Enter genre: ")
+                print(a.search_by_genre(gen))
+            elif choice2 == '5':
+                bookname = input("Enter book name: ")
+                print(a.about_book(bookname))
+            elif choice2=='6':
+                bookname = input("Enter book name: ")
+                quantity_n = int(input("Enter quantity: "))
+                a.change_book_quantity(bookname, quantity_n)
+            elif choice2=='b':
+                pass
+            else:
+                print("Invalid entry")
 
-
-mydb = mysql.connector.connect(host=host, username=username, password=password, database=database)
-cur = mydb.cursor()
-
-
-def check_table():
-    cur.execute("SHOW TABLES")
-    tables = cur.fetchall()
-    tables = [table[0] for table in tables]
-    if "books" not in tables:
-        cur.execute("create table books(id int NOT NULL auto_increment, person varchar(255) not null, book varchar(255) not null, issue_date datetime default current_timestamp, return_date datetime, primary key(id) );")
-
-
-
-def issue_book(book_name:str, person_name:str):
-    cmd = f"""insert into books(person, book) values(%s, %s)"""
-    val = (person_name.title(), book_name.title())
-    cur.execute(cmd, val)
-    mydb.commit()
-
-def return_book():
-    cur.execute("select id, person, book from books where return_date IS NULL")
-    names = cur.fetchall()
-    for i in names:
-        print(i)
-    issue_id = int(input("Enter issue id->"))
-    cmd = "update books set return_date=%s where id = %s"
-    val = (datetime.datetime.now(),issue_id)
-    cur.execute(cmd, val)
-    mydb.commit()
-
-
-def book_history(name:str):
-    cmd = "select * from books where book=%s"
-    val = (name.title(),)
-    cur.execute(cmd, val)
-    his = cur.fetchall()
-    for i in his:
-        print(f"Issue Number:{i[0]}\nName:{i[1]}\nIssue Datetime:{i[3]}\nReturn Datetime:{i[4]}")
-        print("------------")
-
-
-def person_history(name:str):
-    cmd = "select * from books where person=%s"
-    val= (name.title(),)
-    cur.execute(cmd, val)
-    his = cur.fetchall()
-    for i in his:
-        print(f"Issue Number:{i[0]}\nBook:{i[2]}\nIssue Datetime:{i[3]}\nReturn Datetime:{i[4]}")
-        print("------------")
-
-
-
-if __name__ == "__main__":
-    check_table()
-    instruc = "1-> Issue Book\n2-> Return Book\n3-> Book History\n4-> Person History\n q-> Quit\n-------------\n"
-    while True:
-        a = input(instruc)
-        if a == '1':
-            book_n = input("Enter book name: ")
-            p_name = input("Enter name of borrower: ")
-            issue_book(book_n, p_name)
-        elif a == '2':
-            return_book()
-        elif a == '3':
-            book_n = input("Enter book name: ")
-            book_history(book_n)
-        elif a == '4':
-            p_name = input("Enter name of person: ")
-            person_history(p_name)
-        elif a == 'q':
-            print("Bye Bye!")
-            break
+    elif choice == '6':
+        bookname = input("Enter book name: ")
+        authorname = input("Enter author name: ")
+        genre = input("Enter genre: ")
+        rating = int(input("Enter rating- "))
+        quantity = input("Enter quantity(default=1) -")
+        if quantity == '':
+            quantity = 1
         else:
-            print("Invalid Input try again!")
+            quantity = int(quantity)
+        a.add_book(bookname, authorname, genre, rating, quantity)
+    elif choice == 'q':
+        pass
+    else:
+        print("Invalid entry please try again!")
+
+print("Bye Bye!")
