@@ -1,5 +1,5 @@
 from funcs import UltimateLib
-a = UltimateLib("localhost", "your_username", "your_password", "your_database")
+a = UltimateLib("localhost", "root", "siddhurocks", "schl_practical")
 print("Welcome to ultimate library!")
 str1="""
 ----------------
@@ -73,7 +73,7 @@ while choice != "q":
         bookname = input("Enter book name: ")
         authorname = input("Enter author name: ")
         genre = input("Enter genre: ")
-        rating = int(input("Enter rating- "))
+        rating = float(input("Enter rating- "))
         quantity = input("Enter quantity(default=1) -")
         if quantity == '':
             quantity = 1

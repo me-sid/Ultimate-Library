@@ -4,6 +4,7 @@ import datetime
 
 class UltimateLib:
     def __init__(self, host, username, password, database):
+        # creating db connection
         self.mydb = mysql.connector.connect(host=host, username=username, password=password, database=database)
         self.cur = self.mydb.cursor()
 
@@ -29,6 +30,7 @@ class UltimateLib:
 
 
     def add_book(self, book_name:str, author_name:str, genre:str, rating=None, quantity=1):
+        """adds book in books_detail table"""
         if self.check_book(book_name) is True:
             print("book already exist! Try changing the book quantity")
         else:
@@ -40,6 +42,7 @@ class UltimateLib:
 
 
     def change_book_quantity(self, book_name, quantity):
+        """changes quantity of book in book_details table"""
         if self.check_book(book_name) is True:
             self.cur.execute("select id, book_name, quantity from books_detail where book_name = %s", (book_name.title(),))
             bk = self.cur.fetchall()
@@ -51,6 +54,7 @@ class UltimateLib:
 
 
     def b_availability(self, book_name:str):
+        """checks if book exists in book_details table and quantity is more than 0"""
         self.cur.execute("select book_name, quantity from books_detail")
         book_list=self.cur.fetchall()
         result=False
@@ -61,12 +65,14 @@ class UltimateLib:
 
 
     def issue_book(self, book_name:str, person_name:str):
+        """issue the book"""
+
         if self.b_availability(book_name) is True:
             self.cur.execute("insert into issue_book(person, book) values(%s, %s)", (person_name.title(), book_name.title()))
             self.mydb.commit()
 
             # update books_detail table 
-            self.cur.execute("select id, quantity from books_detail where book_name=%s", ("book1",))
+            self.cur.execute("select id, quantity from books_detail where book_name=%s", (book_name.title(),))
             a = self.cur.fetchall()
             book_id = a[0][0]
             existing_quantity = a[0][1]
@@ -79,6 +85,7 @@ class UltimateLib:
 
 
     def return_book(self):
+        """return issued book"""
         self.cur.execute("select id, person, book from issue_book where return_date IS NULL")
         names = self.cur.fetchall()
         for i in names:
@@ -99,6 +106,8 @@ class UltimateLib:
             
 
     def about_book(self, book_name):
+        """tells all the details about the book as a string"""
+
         # check if book in db
         if self.check_book(book_name) is True:
             self.cur.execute("select * from books_detail where book_name = %s", (book_name.title(),))
@@ -110,6 +119,7 @@ class UltimateLib:
 
 
     def search_by_genre(self, genre):
+        """returns books by genre as a string"""
         self.cur.execute("select * from books_detail where genre = %s", (genre,))
         list1 = self.cur.fetchall()
         ret_str = ""
@@ -119,7 +129,7 @@ class UltimateLib:
 
 
     def search_by_rating(self, start=0, end=10):
-        """gives tuple of book id, book name, author name, rating, genre, quantity"""
+        """returns books by rating as a string"""
         self.cur.execute("select * from books_detail where rating between %s and %s", (start, end))
         ret_str = ""
         for i in self.cur.fetchall():
@@ -128,7 +138,7 @@ class UltimateLib:
 
 
     def person_history(self, name:str):
-        """gives tuple of issue_id, book name, issue_date, return_date"""
+        """returns the issue and return history of a person as a string"""
         cmd = "select id, book, issue_date, return_date from issue_book where person=%s"
         val= (name.title(),)
         self.cur.execute(cmd, val)
@@ -149,7 +159,7 @@ class UltimateLib:
         return book_his_string
 
     def available_books(self):
-        """gives tuple of id, book name, author, book rating, genre, quantity"""
+        """yields a tuple of all available books"""
         self.cur.execute("select * from books_detail where quantity != 0")
         for i in self.cur.fetchall():
             yield i
