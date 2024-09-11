@@ -1,5 +1,5 @@
 from funcs import UltimateLib
-a = UltimateLib("localhost", "root", "siddhurocks", "schl_practical")
+a = UltimateLib("localhost", "root", "your_mysql_password", "your_database_name")
 print("Welcome to ultimate library!")
 str1="""
 ----------------
