@@ -1,5 +1,8 @@
 from funcs import UltimateLib
+# Database connection
 a = UltimateLib("localhost", "root", "your_mysql_password", "your_database_name")
+
+
 print("Welcome to ultimate library!")
 str1="""
 ----------------
