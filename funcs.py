@@ -5,7 +5,8 @@ import datetime
 class UltimateLib:
     def __init__(self, host, username, password, database):
         # creating db connection
-        self.mydb = mysql.connector.connect(host=host, username=username, password=password, database=database)
+        self.mydb = mysql.connector.connect(host=host, username=username,
+                                             password=password, database=database)
         self.cur = self.mydb.cursor()
 
         #check_tables
@@ -13,9 +14,17 @@ class UltimateLib:
         tables = self.cur.fetchall()
         tables = [table[0] for table in tables]
         if "issue_book" not in tables:
-            self.cur.execute("create table issue_book(id int NOT NULL auto_increment, person varchar(255) not null, book varchar(255) not null, issue_date datetime default current_timestamp, return_date datetime, primary key(id) );")
+            q = """create table issue_book(id int NOT NULL auto_increment,
+            person varchar(255) not null, book varchar(255) not null,
+            issue_date datetime default current_timestamp, return_date datetime,
+              primary key(id) );"""
+            self.cur.execute(q)
         if "books_detail" not in tables:
-            self.cur.execute("CREATE TABLE books_detail (id INT AUTO_INCREMENT PRIMARY KEY,book_name VARCHAR(255) NOT NULL,author_name VARCHAR(255) NOT NULL,rating FLOAT CHECK (rating >= 0 AND rating <= 10), genre varchar(100), quantity int default 0);")
+            q = """CREATE TABLE books_detail (id INT AUTO_INCREMENT PRIMARY KEY,
+            book_name VARCHAR(255) NOT NULL,author_name VARCHAR(255) NOT NULL,
+            rating FLOAT CHECK (rating >= 0 AND rating <= 10), genre varchar(100),
+              quantity int default 0);"""
+            self.cur.execute(q)
 
 
     def check_book(self, book_name):
@@ -37,7 +46,8 @@ class UltimateLib:
             if rating is not None and 0>rating>10:
                 print("Invalid rating range")
             else:
-                self.cur.execute("insert into books_detail(book_name, author_name, rating, genre, quantity) values(%s, %s, %s, %s, %s)", (book_name.title(), author_name.title(), rating, genre.title(), quantity))
+                vals = (book_name.title(), author_name.title(), rating, genre.title(), quantity)
+                self.cur.execute("insert into books_detail(book_name, author_name, rating, genre, quantity) values(%s, %s, %s, %s, %s)", vals)
                 self.mydb.commit()
 
 
