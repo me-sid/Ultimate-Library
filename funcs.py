@@ -106,8 +106,12 @@ class UltimateLib:
         self.cur.execute(cmd, val)
         self.mydb.commit()
 
-        # update books_detail table 
-        self.cur.execute("select id, quantity from books_detail where book_name=%s", ("book1",))
+        # get book name 
+        self.cur.execute("select book from issue_book where id=%s", (issue_id,))
+        book_name = self.cur.fetchone()
+
+        # update books_detail table       
+        self.cur.execute("select id, quantity from books_detail where book_name=%s", book_name)
         a = self.cur.fetchall()
         book_id = a[0][0]
         existing_quantity = a[0][1]

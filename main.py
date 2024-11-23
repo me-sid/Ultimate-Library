@@ -3,8 +3,8 @@ from funcs import UltimateLib
 # Database credentials
 host = "localhost"
 username = "root"
-password = "your_password"
-database_name = "your_database"
+password = "your_mysql_password"
+database_name = "your_database_name"
 
 # Creating instance of UltimateLib class 
 lib = UltimateLib(host=host, username=username, password=password, database=database_name)
@@ -82,7 +82,7 @@ while choice != "q":
         bookname = input("Enter book name: ")
         authorname = input("Enter author name: ")
         genre = input("Enter genre: ")
-        rating = float(input("Enter rating- "))
+        rating = float(input("Enter rating (out of 10)- "))
         quantity = input("Enter quantity(default=1) -")
         if quantity == '':
             quantity = 1
