@@ -1,196 +1,181 @@
-import sqlite3
+import mysql.connector
 import datetime
 
 
 class UltimateLib:
-
-    def __init__(self, database):
-        # Creating database connection
-        self.mydb = sqlite3.connect(database)
+    def __init__(self, host, username, password, database):
+        # creating db connection
+        self.mydb = mysql.connector.connect(host=host, username=username,
+                                             password=password, database=database)
         self.cur = self.mydb.cursor()
 
-        # Check and create tables if they don't exist
-        self.cur.execute("""
-        CREATE TABLE IF NOT EXISTS issue_book (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            person TEXT NOT NULL,
-            book TEXT NOT NULL,
-            issue_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            return_date TIMESTAMP
-        )
-        """)
+        #check_tables
+        self.cur.execute("SHOW TABLES")
+        tables = self.cur.fetchall()
+        tables = [table[0] for table in tables]
+        if "issue_book" not in tables:
+            q = """create table issue_book(id int NOT NULL auto_increment,
+            person varchar(255) not null, book varchar(255) not null,
+            issue_date datetime default current_timestamp, return_date datetime,
+              primary key(id) );"""
+            self.cur.execute(q)
+        if "books_detail" not in tables:
+            q = """CREATE TABLE books_detail (id INT AUTO_INCREMENT PRIMARY KEY,
+            book_name VARCHAR(255) NOT NULL,author_name VARCHAR(255) NOT NULL,
+            rating FLOAT CHECK (rating >= 0 AND rating <= 10), genre varchar(100),
+              quantity int default 0);"""
+            self.cur.execute(q)
 
-        self.cur.execute("""
-        CREATE TABLE IF NOT EXISTS books_detail (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            book_name TEXT NOT NULL,
-            author_name TEXT NOT NULL,
-            rating REAL CHECK (rating >= 0 AND rating <= 10),
-            genre TEXT,
-            quantity INTEGER DEFAULT 0
-        )
-        """)
-        self.mydb.commit()
 
     def check_book(self, book_name):
-        """Check if book is in books_detail table"""
-        self.cur.execute("SELECT book_name FROM books_detail")
-        book_list = self.cur.fetchall()
-        return any(book_name.title() == i[0] for i in book_list)
+        """check if book is in books_detail table"""
+        self.cur.execute("select book_name from books_detail")
+        book_list=self.cur.fetchall()
+        result = False
+        for i in book_list:
+            if i[0] == book_name.title():
+                result = True
+        return result
 
-    def add_book(self,
-                 book_name: str,
-                 author_name: str,
-                 genre: str,
-                 rating=None,
-                 quantity=1):
-        """Adds book to books_detail table"""
-        if self.check_book(book_name):
-            return("Book already exists! Try changing the book quantity.")
+
+    def add_book(self, book_name:str, author_name:str, genre:str, rating=None, quantity=1):
+        """adds book in books_detail table"""
+        if self.check_book(book_name) is True:
+            print("book already exist! Try changing the book quantity")
         else:
-            if rating is not None and not (0 <= rating <= 10):
+            if rating is not None and 0>rating>10:
                 print("Invalid rating range")
             else:
-                vals = (book_name.title(), author_name.title(), rating,
-                        genre.title(), quantity)
-                self.cur.execute(
-                    "INSERT INTO books_detail (book_name, author_name, rating, genre, quantity) VALUES (?, ?, ?, ?, ?)",
-                    vals)
+                vals = (book_name.title(), author_name.title(), rating, genre.title(), quantity)
+                self.cur.execute("insert into books_detail(book_name, author_name, rating, genre, quantity) values(%s, %s, %s, %s, %s)", vals)
                 self.mydb.commit()
-                return "book added successfully!"
+
 
     def change_book_quantity(self, book_name, quantity):
-        """Changes quantity of book in books_detail table"""
-        if self.check_book(book_name):
-            self.cur.execute(
-                "UPDATE books_detail SET quantity = ? WHERE book_name = ?",
-                (quantity, book_name.title()))
+        """changes quantity of book in book_details table"""
+        if self.check_book(book_name) is True:
+            self.cur.execute("select id, book_name, quantity from books_detail where book_name = %s", (book_name.title(),))
+            bk = self.cur.fetchall()
+            b_id = bk[0][0]
+            self.cur.execute("update books_detail set quantity = %s where id=%s", (quantity, b_id))
             self.mydb.commit()
-            return "Book quantity changed!"
         else:
-            return "Book not found!"
+            print("Book not found")
 
-    def b_availability(self, book_name: str):
-        """Checks if book exists and quantity is more than 0"""
-        self.cur.execute(
-            "SELECT quantity FROM books_detail WHERE book_name = ?",
-            (book_name.title(), ))
-        book = self.cur.fetchone()
-        return book is not None and book[0] > 0
 
-    def issue_book(self, book_name: str, person_name: str):
-        """Issues the book"""
-        if self.b_availability(book_name):
-            self.cur.execute(
-                "INSERT INTO issue_book (person, book) VALUES (?, ?)",
-                (person_name.title(), book_name.title()))
-            self.cur.execute(
-                "UPDATE books_detail SET quantity = quantity - 1 WHERE book_name = ?",
-                (book_name.title(), ))
-            self.mydb.commit()
-            return ("Book issued successfully!")
-        else:
-            return ("Sorry, book is not available!")
+    def b_availability(self, book_name:str):
+        """checks if book exists in book_details table and quantity is more than 0"""
+        self.cur.execute("select book_name, quantity from books_detail")
+        book_list=self.cur.fetchall()
+        result=False
+        for i in book_list:
+            if i[0] == book_name.title() and i[1] != 0:
+                result = True
+        return result
 
-    def return_book(self, book_name, borrower):
-        """Returns issued book"""
-        try:
-            # First update the issue_book table to set the return_date
-            self.cur.execute("""
-                UPDATE issue_book 
-                SET return_date = ? 
-                WHERE person = ? AND book = ? AND return_date IS NULL
-            """, (datetime.datetime.now(), borrower, book_name))
-            
-            # Check if any row was updated
-            if self.cur.rowcount == 0:
-                return "No record found!"
 
+    def issue_book(self, book_name:str, person_name:str):
+        """issue the book"""
+
+        if self.b_availability(book_name) is True:
+            self.cur.execute("insert into issue_book(person, book) values(%s, %s)", (person_name.title(), book_name.title()))
             self.mydb.commit()
 
-            # Update the quantity in the books_detail table
-            self.cur.execute("""
-                UPDATE books_detail 
-                SET quantity = quantity + 1 
-                WHERE book_name = ?
-            """, (book_name, ))
-            
+            # update books_detail table 
+            self.cur.execute("select id, quantity from books_detail where book_name=%s", (book_name.title(),))
+            a = self.cur.fetchall()
+            book_id = a[0][0]
+            existing_quantity = a[0][1]
+            self.cur.execute("update books_detail set quantity=%s where id=%s", (existing_quantity-1, book_id))
             self.mydb.commit()
-
-            return "Book returned!"
+            print("Book issued successfully!")
         
-        except Exception as e:
-            return f"An error occurred: {e}"
+        else:
+            print("Sorry book is not available!")
 
+
+    def return_book(self):
+        """return issued book"""
+        self.cur.execute("select id, person, book from issue_book where return_date IS NULL")
+        names = self.cur.fetchall()
+        for i in names:
+            print(i)
+        issue_id = int(input("Enter issue id->"))
+        cmd = "update issue_book set return_date=%s where id = %s"
+        val = (datetime.datetime.now(),issue_id)
+        self.cur.execute(cmd, val)
+        self.mydb.commit()
+
+        # get book name 
+        self.cur.execute("select book from issue_book where id=%s", (issue_id,))
+        book_name = self.cur.fetchone()
+
+        # update books_detail table       
+        self.cur.execute("select id, quantity from books_detail where book_name=%s", book_name)
+        a = self.cur.fetchall()
+        book_id = a[0][0]
+        existing_quantity = a[0][1]
+        self.cur.execute("update books_detail set quantity=%s where id=%s", (existing_quantity+1, book_id))
+        self.mydb.commit()
             
 
     def about_book(self, book_name):
-        """Tells all details about the book"""
-        if self.check_book(book_name):
-            self.cur.execute("SELECT * FROM books_detail WHERE book_name = ?",
-                             (book_name.title(), ))
-            about = self.cur.fetchone()
-            return f"Book id: {about[0]}\nBook name: {about[1]}\nAuthor: {about[2]}\nRating: {about[3]}\nGenre: {about[4]}\nQuantity: {about[5]}"
+        """tells all the details about the book as a string"""
+
+        # check if book in db
+        if self.check_book(book_name) is True:
+            self.cur.execute("select * from books_detail where book_name = %s", (book_name.title(),))
+            about = self.cur.fetchall()
+            about = about[0]
+            return f"Book id:{about[0]}\nBook name:{about[1]}\nAuthor: {about[2]}\nrating:{about[3]}\ngenre:{about[4]}\nQuantity:{about[5]}"
         else:
-            return "Sorry, we don't have that book yet!"
+            return "Sorry we dont have that book yet!"
+
 
     def search_by_genre(self, genre):
-        """Returns books by genre as a string"""
-        self.cur.execute("SELECT * FROM books_detail WHERE genre = ?",
-                         (genre.title(), ))
+        """returns books by genre as a string"""
+        self.cur.execute("select * from books_detail where genre = %s", (genre,))
         list1 = self.cur.fetchall()
-        return "\n\n".join([
-            f"Book id: {i[0]}\nBook name: {i[1]}\nAuthor: {i[2]}\nRating: {i[3]}\nGenre: {i[4]}\nQuantity: {i[5]}"
-            for i in list1
-        ])
+        ret_str = ""
+        for i in list1:
+            ret_str += f"Book id:{i[0]}\nBook name:{i[1]}\nAuthor: {i[2]}\nrating:{i[3]}\ngenre:{i[4]}\nQuantity:{i[5]}\n\n"
+        return ret_str
+
 
     def search_by_rating(self, start=0, end=10):
-        """Returns books by rating as a string"""
-        self.cur.execute(
-            "SELECT * FROM books_detail WHERE rating BETWEEN ? AND ?",
-            (start, end))
-        list1 = self.cur.fetchall()
-        return "\n\n".join([
-            f"Book id: {i[0]}\nBook name: {i[1]}\nAuthor: {i[2]}\nRating: {i[3]}\nGenre: {i[4]}\nQuantity: {i[5]}"
-            for i in list1
-        ])
+        """returns books by rating as a string"""
+        self.cur.execute("select * from books_detail where rating between %s and %s", (start, end))
+        ret_str = ""
+        for i in self.cur.fetchall():
+            ret_str += f"Book id:{i[0]}\nBook name:{i[1]}\nAuthor: {i[2]}\nrating:{i[3]}\ngenre:{i[4]}\nQuantity:{i[5]}\n\n"
+        return ret_str
 
-    def person_history(self, name: str):
-        """Returns the issue and return history of a person as a string"""
-        self.cur.execute(
-            "SELECT id, book, issue_date, return_date FROM issue_book WHERE person = ?",
-            (name.title(), ))
-        list1 = self.cur.fetchall()
-        return "\n\n".join([
-            f"Issue id: {i[0]}\nBook Name: {i[1]}\nIssue Date: {i[2]}\nReturn Date: {i[3]}"
-            for i in list1
-        ])
 
-    def book_history(self, book_name: str):
-        """Returns book history as a string"""
-        self.cur.execute(
-            "SELECT id, person, issue_date, return_date FROM issue_book WHERE book = ?",
-            (book_name.title(), ))
-        list1 = self.cur.fetchall()
-        return "\n\n".join([
-            f"Issue id: {i[0]}\nBorrower's Name: {i[1]}\nIssue Date: {i[2]}\nReturn Date: {i[3]}"
-            for i in list1
-        ])
+    def person_history(self, name:str):
+        """returns the issue and return history of a person as a string"""
+        cmd = "select id, book, issue_date, return_date from issue_book where person=%s"
+        val= (name.title(),)
+        self.cur.execute(cmd, val)
+        ret_str = ""
+        for i in self.cur.fetchall():
+            ret_str += f"Issue id:{i[0]}\nBook Name: {i[1]}\nIssue Date:{i[2]} Return Date:{i[3]}\n\n"
+        return ret_str
+
+
+    def book_history(self, book_name:str):
+        """returns book history as string"""
+        cmd = "select id, person, issue_date, return_date from issue_book where book=%s"
+        val = (book_name.title(),)
+        self.cur.execute(cmd, val)
+        book_his_string =""
+        for i in self.cur.fetchall():
+            book_his_string += f"Issue id:{i[0]}\nBorrower's Name: {i[1]}\nIssue Date:{i[2]} Return Date:{i[3]}\n\n"
+        return book_his_string
 
     def available_books(self):
-        """returns a string of available books"""
-        self.cur.execute("SELECT * FROM books_detail WHERE quantity > 0")
-        stri = ""
+        """yields a tuple of all available books"""
+        self.cur.execute("select * from books_detail where quantity != 0")
         for i in self.cur.fetchall():
-            stri += f"Book id: {i[0]}\nBook name: {i[1]}\nAuthor: {i[2]}\nRating: {i[3]}\nGenre: {i[4]}\nQuantity: {i[5]}\n\n"
-        return stri
-    
-    def unreturned_books(self):
-        """Returns a string of all unreturned books"""
-        stri=""
+            yield i
 
-        self.cur.execute("select * from issue_book where return_date is null")
-        for i in self.cur.fetchall():
-            stri += f"Id: {i[0]}\nName: {i[1]}\nBook: {i[2]}\nIssue Date: {i[3]}\n\n"
-        return stri
 
