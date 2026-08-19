@@ -15,9 +15,6 @@ A complete GUI application for digital library management with a vintage aesthet
 ### Issue Book
 ![Issue Book](screenshots/issue-book.png)
 
-### Search Books By Rating
-![Search](screenshots/search.png)
-
 ### Unreturned Books
 ![Unreturned](screenshots/unreturned-books.png)
 
