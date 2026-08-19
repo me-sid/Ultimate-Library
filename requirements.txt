@@ -1,0 +1,6 @@
+# Ultimate Library - Requirements
+
+# Note: sqlite3 and tkinter come built-in with Python 3
+# No external dependencies required!
+
+# Python version: 3.6+
